@@ -4,6 +4,15 @@ import os
 import time
 import requests
 import numpy as np
+import logging
+
+# Override default CORS settings
+st.set_option('server.enableCORS', False)
+st.set_option('server.enableXsrfProtection', False)
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def get_frame_from_esp32(url, retries=3):
     for _ in range(retries):
@@ -21,17 +30,22 @@ def get_frame_from_esp32(url, retries=3):
                         frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
                         return frame
             else:
+                logger.error(f"Failed to fetch frame from ESP32-CAM. Status code: {response.status_code}")
                 st.error(f"Failed to fetch frame from ESP32-CAM. Status code: {response.status_code}")
                 return None
         except requests.exceptions.ReadTimeout:
+            logger.warning("Read timeout while fetching frame from ESP32-CAM. Retrying...")
             st.warning("Read timeout while fetching frame from ESP32-CAM. Retrying...")
             continue
         except requests.exceptions.ConnectionError:
+            logger.error("Connection error while fetching frame from ESP32-CAM. Retrying...")
             st.error("Connection error while fetching frame from ESP32-CAM. Retrying...")
             continue
         except Exception as e:
+            logger.error(f"Error: {e}")
             st.error(f"Error: {e}")
             return None
+    logger.error(f"Failed to fetch frame from ESP32-CAM after {retries} retries.")
     st.error(f"Failed to fetch frame from ESP32-CAM after {retries} retries.")
     return None
 
